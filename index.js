@@ -1,6 +1,4 @@
-require("dotenv").config({
-    path: "C:/vs code/Discord music/Node Music/New Music Bot/.env"
-});
+require("dotenv").config();
 
 const { Client, GatewayIntentBits } = require("discord.js");
 const { Shoukaku, Connectors } = require("shoukaku");
@@ -68,4 +66,5 @@ client.shoukaku.on("ready", (name) => console.log(`✅ Lavalink connected: ${nam
 client.shoukaku.on("error", (name, error) => console.error(`❌ Lavalink error on ${name}`, error));
 
 // 6️⃣ Login
+
 client.login(process.env.TOKEN);
