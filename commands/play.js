@@ -1,4 +1,4 @@
-const MusicQueue = require("C:/vs code/Discord music/Node Music/New Music Bot/structures/MusicQueue");
+const MusicQueue = require("./structures/MusicQueue");
 
 module.exports = {
   name: "play",
@@ -70,3 +70,4 @@ module.exports = {
     }
   }
 };
+
