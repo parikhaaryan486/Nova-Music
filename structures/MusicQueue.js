@@ -10,11 +10,12 @@ class MusicQueue {
     this.currentTrack = null;
     this.playing = false;
     this.skipped = false;
-    this.allowTrackLoop = true;
-    this.stopping = false;
 
     this.loopMode = "off"; // off | track | queue
     this.timeout = null;
+    this.idleTimer = null;
+
+    this.volume = 100; // default 100%
   }
 
   add(track) {
@@ -26,24 +27,44 @@ class MusicQueue {
     }
   }
 
+  startIdleTimer() {
+    if (this.idleTimer) return;
+
+    this.idleTimer = setTimeout(() => {
+      // still idle?
+      if (!this.playing && this.tracks.length === 0) {
+        this.disconnect("idle");
+      }
+    }, 30_000); // 30 seconds
+  }
+
+  clearIdleTimer() {
+    if (this.idleTimer) {
+      clearTimeout(this.idleTimer);
+      this.idleTimer = null;
+    }
+  }
+
   async play() {
     if (this.playing) return;
 
     let track;
 
-    // 🔁 TRACK LOOP (only if NOT skipped)
+    // 🔁 TRACK LOOP
     if (
       this.loopMode === "track" &&
       this.currentTrack &&
       !this.forceSkip
     ) {
       track = this.currentTrack;
-    }
+    } 
     // ▶️ NORMAL FLOW
     else {
       if (this.currentTrack) {
         this.history.push(this.currentTrack);
       }
+
+      this.forceSkip = false;
 
       track = this.tracks.shift();
 
@@ -57,15 +78,12 @@ class MusicQueue {
       this.currentTrack = track;
     }
 
-    // ✅ NOW reset skip flag (after decision)
-    this.forceSkip = false;
-
     // ❌ NOTHING LEFT
     if (!track) {
-      this.startTimeout();
+      this.startIdleTimer();
       return;
     }
-
+    this.clearIdleTimer();
     this.playing = true;
 
     await this.player.playTrack({
@@ -73,24 +91,49 @@ class MusicQueue {
     });
   }
 
-  async handleTrackEnd(reason) {
-    if (this.stopping) return;
+  async setVolume(volume) {
+    if (!this.player) return false;
 
+    this.volume = volume;
+
+    try {
+      // ensure volume is 0–100 for Lavalink
+      const safeVolume = Math.min(Math.max(volume, 0), 100);
+
+      if (this.player.state === "CONNECTED") {
+        await this.player.setVolume(safeVolume); // or player.volume(safeVolume) depending on version
+      }
+
+      return true;
+    } catch (e) {
+      console.error("Failed to set volume:", e);
+      return false;
+    }
+  }
+
+  async handleTrackEnd(reason) {
     this.playing = false;
 
-      // stop / destroy → do nothing
-    if (reason === "stopped" && !this.skipped) return;
+    // STOP or DESTROY → do nothing
+    if (reason === "stopped" && !this.skipped) {
+      return;
+    }
 
-      // skip or natural end allowed
-    const skipped = this.skipped;
+    // If skipped → temporarily disable track loop
+    const wasSkipped = this.skipped;
     this.skipped = false;
 
-      // mark whether currentTrack may be reused
-    this.allowTrackLoop = !skipped;
+    // If skip happened, ignore loop-track ONCE
+    if (wasSkipped && this.loopMode === "track") {
+      const oldLoop = this.loopMode;
+      this.loopMode = "off";
+      await this.play();
+      this.loopMode = oldLoop;
+      return;
+    }
 
     await this.play();
   }
-
 
   async skip() {
     await this.player.stopTrack();
@@ -108,15 +151,41 @@ class MusicQueue {
     await this.play();
   }
 
-  stopAndDestroy() {
-    this.stopping = true;
+  checkEmptyVoiceChannel() {
+    try {
+      const voiceChannel = this.client.guilds.cache
+        .get(this.guildId)
+        ?.channels.cache.get(this.player.connection.channelId);
 
-    this.tracks = [];
-    this.loopMode = "off";
-    this.currentTrack = null;
+      if (!voiceChannel) return;
+
+      const nonBotMembers = voiceChannel.members.filter(
+        member => !member.user.bot
+      );
+
+      if (nonBotMembers.size === 0) {
+        // Start idle timer if not already started
+        this.startIdleTimer();
+      } else {
+        // Someone joined, cancel idle timer
+        this.clearIdleTimer();
+      }
+    } catch (err) {
+      console.error("Error checking empty VC:", err);
+    }
+  }
+
+  disconnect(reason = "manual") {
+    try {
+      this.player.stopTrack();
+    } catch {}
 
     try {
       this.player.destroy();
+    } catch {}
+
+    try {
+      this.client.shoukaku.leaveVoiceChannel(this.guildId);
     } catch {}
 
     this.client.queues.delete(this.guildId);
@@ -128,8 +197,10 @@ class MusicQueue {
   }
 
   startTimeout() {
+    if (this.timeout) return;
+
     this.timeout = setTimeout(() => {
-      this.destroy();
+      this.disconnect("idle");
     }, 30_000);
   }
 
