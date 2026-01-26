@@ -1,4 +1,4 @@
-const MusicQueue = require("./structures/MusicQueue");
+const MusicQueue = require("C:/vs code/Discord music/Node Music/New Music Bot/structures/MusicQueue");
 
 module.exports = {
   name: "play",
@@ -31,6 +31,12 @@ module.exports = {
         return message.reply("❌ No results found.");
     }
 
+    track.requester = {
+      id: message.author.id,
+      tag: message.author.tag,
+      avatar: message.author.displayAvatarURL()
+    };
+
     let queue = client.queues.get(message.guild.id);
 
     if (!queue) {
@@ -43,6 +49,7 @@ module.exports = {
       queue = new MusicQueue(player, message.guild.id, client);
       client.queues.set(message.guild.id, queue);
 
+      
       // ✅ PLAYER EVENTS — SINGLE SOURCE
       player.on("end", (data) => {
         console.log("TRACK END REASON:", data.reason);
@@ -60,6 +67,7 @@ module.exports = {
       });
     }
 
+    
     queue.add(track);
 
     if (!queue.playing) {
@@ -70,4 +78,3 @@ module.exports = {
     }
   }
 };
-

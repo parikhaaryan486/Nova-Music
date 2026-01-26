@@ -1,5 +1,6 @@
 module.exports = {
   name: "skip",
+  aliases: ["s"],
   description: "Skip current track",
   execute: async (client, message) => {
     const queue = client.queues.get(message.guild.id);
