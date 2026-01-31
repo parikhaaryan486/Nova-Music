@@ -15,6 +15,6 @@ module.exports = {
     queue.startTimeout();
 
     await queue.player.stopTrack();
-    message.reply("⏹ Music stopped and left VC.");
+    message.reply("⏹ Music stopped.");
   }
 };

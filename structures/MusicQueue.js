@@ -50,6 +50,10 @@ class MusicQueue {
 
     let track;
 
+    await this.player.setFilters({
+      volume: this.volume / 100
+    });
+
     // 🔁 TRACK LOOP
     if (
       this.loopMode === "track" &&
@@ -97,16 +101,12 @@ class MusicQueue {
     this.volume = volume;
 
     try {
-      // ensure volume is 0–100 for Lavalink
-      const safeVolume = Math.min(Math.max(volume, 0), 100);
-
-      if (this.player.state === "CONNECTED") {
-        await this.player.setVolume(safeVolume); // or player.volume(safeVolume) depending on version
-      }
-
+      await this.player.setFilters({
+        volume: volume / 100
+      });
       return true;
     } catch (e) {
-      console.error("Failed to set volume:", e);
+      console.error("Volume filter error:", e);
       return false;
     }
   }

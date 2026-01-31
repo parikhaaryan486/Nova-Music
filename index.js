@@ -1,4 +1,6 @@
-require("dotenv").config({});
+require("dotenv").config({
+    path: "C:/vs code/Discord music/Node Music/New Music Bot/.env"
+});
 
 const { Client, GatewayIntentBits } = require("discord.js");
 const { Shoukaku, Connectors } = require("shoukaku");
@@ -32,8 +34,8 @@ client.shoukaku = new Shoukaku(
 
 // 3️⃣ Initialize commands map
 client.commands = new Map();
-fs.readdirSync("./commands").forEach(file => {
-    const cmd = require(`./commands/${file}`);
+fs.readdirSync("C:/vs code/Discord music/Node Music/New Music Bot/commands").forEach(file => {
+    const cmd = require(`C:/vs code/Discord music/Node Music/New Music Bot/commands/${file}`);
     client.commands.set(cmd.name, cmd);
 });
 
@@ -95,4 +97,3 @@ client.shoukaku.on("error", (name, error) => console.error(`❌ Lavalink error o
 
 // 6️⃣ Login
 client.login(process.env.TOKEN);
-
