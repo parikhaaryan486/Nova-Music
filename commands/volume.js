@@ -1,4 +1,4 @@
-const embed = require("../utils/embed");
+const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require("discord.js");
 
 module.exports = {
   name: "volume",
@@ -10,43 +10,66 @@ module.exports = {
 
     if (!queue || !queue.player) {
       return message.reply({
-        embeds: [embed.create(client, { description: "❌ Nothing is playing." })]
+        embeds: [new EmbedBuilder().setColor(0xff0000).setDescription("❌ Nothing is playing.")]
       });
     }
 
-    // 1️⃣ Show current volume if no argument
-    if (!args[0]) {
-      return message.reply({
-        embeds: [embed.create(client, {
-          description: `🔊 Current volume is **${queue.volume}%**`
-        })]
-      });
+    // Function to create the status embed
+    const createVolEmbed = () => {
+      return new EmbedBuilder()
+        .setColor(0x001eff)
+        .setDescription(`🔊 Current volume: **${queue.volume}%**`);
+    };
+
+    // Control buttons
+    const row = new ActionRowBuilder().addComponents(
+      new ButtonBuilder()
+        .setCustomId("vol_down")
+        .setLabel("🔉")
+        .setStyle(ButtonStyle.Secondary),
+      new ButtonBuilder()
+        .setCustomId("vol_up")
+        .setLabel("🔊")
+        .setStyle(ButtonStyle.Secondary)
+    );
+
+    // Initial check: if user provided a number, set it first
+    if (args[0]) {
+      const vol = parseInt(args[0]);
+      if (!isNaN(vol) && vol >= 0 && vol <= 200) {
+        await queue.setVolume(Math.min(vol, 200)); // Clamp to 100 for Lavalink stability
+      }
     }
 
-    // 2️⃣ Parse and validate input
-    const vol = parseInt(args[0]);
-    if (isNaN(vol) || vol < 0 || vol > 200) {
-      return message.reply({
-        embeds: [embed.create(client, {
-          description: "❌ Volume must be between 0 and 200."
-        })]
-      });
-    }
+    const msg = await message.reply({
+      embeds: [createVolEmbed()],
+      components: [row]
+    });
 
-    // 3️⃣ Set volume safely
-    const success = await queue.setVolume(Math.min(vol, 100)); // Lavalink max 100
-    if (success) {
-      return message.reply({
-        embeds: [embed.create(client, {
-          description: `🔊 Volume set to **${vol}%** (Lavalink max 100%)`
-        })]
+    // Collector to handle button clicks
+    const collector = msg.createMessageComponentCollector({
+      filter: (i) => i.user.id === message.author.id,
+      time: 30000 // Buttons stay active for 30 seconds
+    });
+
+    collector.on("collect", async (interaction) => {
+      let currentVol = queue.volume;
+
+      if (interaction.customId === "vol_down") {
+        currentVol = Math.max(0, currentVol - 10);
+      } else if (interaction.customId === "vol_up") {
+        currentVol = Math.min(100, currentVol + 10);
+      }
+
+      await queue.setVolume(currentVol);
+
+      await interaction.update({
+        embeds: [createVolEmbed()]
       });
-    } else {
-      return message.reply({
-        embeds: [embed.create(client, {
-          description: "❌ Failed to set volume."
-        })]
-      });
-    }
+    });
+
+    collector.on("end", () => {
+      msg.edit({ components: [] }).catch(() => {});
+    });
   }
 };
