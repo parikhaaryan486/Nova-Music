@@ -1,4 +1,5 @@
 const { EmbedBuilder } = require("discord.js");
+const autoplay = require("./autoplay");
 
 function formatTime(ms) {
   if (!ms || ms === 0) return "00:00";
@@ -61,6 +62,7 @@ ${bar} \`${timeNow} / ${timeTotal}\`
 👤 **Requested by:** <@${track.requester.id}>
 🔊 **Volume:** ${queue.volume}%
 🔁 **Loop:** ${loopText}
+📻 **Autoplay** ${queue.autoplay}
       `);
 
     return message.reply({ embeds: [embed] });

@@ -16,11 +16,11 @@ class MusicQueue {
     this.idleTimer = null;
 
     this.volume = 100; // default 100%
+    this.autoplay = false;
   }
 
   add(track) {
     this.tracks.push(track);
-
     if (this.timeout) {
       clearTimeout(this.timeout);
       this.timeout = null;
@@ -46,14 +46,15 @@ class MusicQueue {
   }
 
   async play() {
+    
     if (this.playing) return;
-
+    
     let track;
-
+    
     await this.player.setFilters({
       volume: this.volume / 100
     });
-
+    
     // 🔁 TRACK LOOP
     if (
       this.loopMode === "track" &&
@@ -67,29 +68,32 @@ class MusicQueue {
       if (this.currentTrack) {
         this.history.push(this.currentTrack);
       }
-
+      
       this.forceSkip = false;
-
+      
       track = this.tracks.shift();
-
+      
       // 🔁 QUEUE LOOP
       if (!track && this.loopMode === "queue") {
         this.tracks = [...this.history];
         this.history = [];
         track = this.tracks.shift();
       }
-
+      
       this.currentTrack = track;
     }
-
+    
     // ❌ NOTHING LEFT
     if (!track) {
+      if (this.autoplay && this.history.length > 0) {
+        return this.handleAutoplay(); // Trigger autoplay logic
+      }
       this.startIdleTimer();
       return;
     }
     this.clearIdleTimer();
     this.playing = true;
-
+    
     await this.player.playTrack({
       track: { encoded: track.encoded }
     });
@@ -149,6 +153,46 @@ class MusicQueue {
 
     // ✅ natural end
     await this.play();
+  }
+
+  async handleAutoplay() {
+    // 1. Get the last track played from history
+    const lastTrack = this.history[this.history.length - 1];
+    if (!lastTrack) return this.startIdleTimer();
+
+    // 2. Build a "Related" search query
+    // We search for the artist + "similar songs" to avoid getting the same track title
+    const search = `ytsearch:songs similar to ${lastTrack.info.author} ${lastTrack.info.title} mix`;
+
+    const res = await this.client.shoukaku.getIdealNode().rest.resolve(search);
+
+    if (!res.data || !res.data.length) {
+        return this.startIdleTimer();
+    }
+
+    // 3. Filter out the current/last song so it doesn't play again immediately
+    // We look at the first 10 results and pick one that isn't the same title
+    const filteredResults = res.data.filter(t => 
+        t.info.title.toLowerCase() !== lastTrack.info.title.toLowerCase()
+    );
+
+    // 4. If filtering left us with nothing, just take the 2nd result from the original search
+    const nextTrack = filteredResults.length > 0 
+        ? filteredResults[Math.floor(Math.random() * Math.min(filteredResults.length, 5))]
+        : res.data[1]; 
+
+    if (!nextTrack) return this.startIdleTimer();
+
+    // 5. Set requester as "Autoplay"
+    nextTrack.requester = {
+        id: this.client.user.id,
+        tag: "Autoplay Mode",
+        avatar: this.client.user.displayAvatarURL()
+    };
+
+    this.add(nextTrack);
+    this.playing = false; // Reset status to allow .play() to execute
+    return this.play();
   }
 
   checkEmptyVoiceChannel() {
