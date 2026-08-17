@@ -1,5 +1,5 @@
 require("dotenv").config({
-    path: "C:/vs code/Discord music/Node Music/New Music Bot/.env"
+    path: "/.env"
 });
 
 const { Client, GatewayIntentBits } = require("discord.js");
@@ -34,8 +34,8 @@ client.shoukaku = new Shoukaku(
 
 // 3️⃣ Initialize commands map
 client.commands = new Map();
-fs.readdirSync("C:/vs code/Discord music/Node Music/New Music Bot/commands").forEach(file => {
-    const cmd = require(`C:/vs code/Discord music/Node Music/New Music Bot/commands/${file}`);
+fs.readdirSync("./commands").forEach(file => {
+    const cmd = require(`./commands/${file}`);
     client.commands.set(cmd.name, cmd);
 });
 
