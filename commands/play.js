@@ -1,175 +1,5 @@
-// // const MusicQueue = require("C:/vs code/Discord music/Node Music/New Music Bot/structures/MusicQueue");
-
-// // module.exports = {
-// //   name: "play",
-// //   description: "Play a song from SoundCloud or link",
-// //   execute: async (client, message, args) => {
-// //     const query = args.join(" ");
-// //     if (!query) return message.reply("❌ Provide a song name or link.");
-
-// //     const voice = message.member.voice.channel;
-// //     if (!voice) return message.reply("❌ Join a voice channel first.");
-
-// //     const node = client.shoukaku.getIdealNode();
-// //     if (!node) return message.reply("❌ Lavalink not ready yet.");
-
-// //     const search = query.startsWith("http") ? query : `scsearch:${query}`;
-// //     const res = await node.rest.resolve(search);
-
-// //     let track;
-// //     switch (res.loadType) {
-// //       case "track":
-// //         track = res.data;
-// //         break;
-// //       case "search":
-// //         track = res.data[0];
-// //         break;
-// //       case "playlist":
-// //         track = res.data.tracks[0];
-// //         break;
-// //       default:
-// //         return message.reply("❌ No results found.");
-// //     }
-
-// //     track.requester = {
-// //       id: message.author.id,
-// //       tag: message.author.tag,
-// //       avatar: message.author.displayAvatarURL()
-// //     };
-// //     track.thumbnail = track.info.thumbnail || null; 
-    
-// //     let queue = client.queues.get(message.guild.id);
-
-// //     if (!queue) {
-// //       const player = await client.shoukaku.joinVoiceChannel({
-// //         guildId: message.guild.id,
-// //         channelId: voice.id,
-// //         shardId: message.guild.shardId
-// //       });
-
-// //       queue = new MusicQueue(player, message.guild.id, client);
-// //       client.queues.set(message.guild.id, queue);
-
-// //       // ✅ PLAYER EVENTS — SINGLE SOURCE
-// //       player.on("end", (data) => {
-// //         console.log("TRACK END REASON:", data.reason);
-// //         queue.handleTrackEnd(data.reason);
-// //       });
-
-// //       player.on("exception", () => {
-// //         queue.playing = false;
-// //         queue.play();
-// //       });
-
-// //       player.on("stuck", () => {
-// //         queue.playing = false;
-// //         queue.play();
-// //       });
-// //     }
-
-// //     queue.add(track);
-
-// //     if (!queue.playing) {
-// //       await queue.play();
-// //       return message.reply(`🎵 Now playing: **${track.info.title}**`);
-// //     } else {
-// //       return message.reply(`➕ Added to queue: **${track.info.title}**`);
-// //     }
-// //   }
-// // };
-
-
-
-
 const { aliases } = require("./disconnect");
-const MusicQueue = require("C:/vs code/Discord music/Node Music/New Music Bot/structures/MusicQueue");
-
-// module.exports = {
-//   name: "play",
-//   description: "Play a song from SoundCloud or link",
-//   execute: async (client, message, args) => {
-//     const query = args.join(" ");
-//     if (!query) return message.reply("❌ Provide a song name or link.");
-
-//     const voice = message.member.voice.channel;
-//     if (!voice) return message.reply("❌ Join a voice channel first.");
-
-//     const node = client.shoukaku.getIdealNode();
-//     if (!node) return message.reply("❌ Lavalink not ready yet.");
-
-//     const search = query.startsWith("http") ? query : `scsearch:${query}`;
-//     const res = await node.rest.resolve(search);
-
-//     let track;
-//     switch (res.loadType) {
-//       case "track":
-//         track = res.data;
-//         break;
-//       case "search":
-//         track = res.data[0];
-//         break;
-//       case "playlist":
-//         track = res.data.tracks[0];
-//         break;
-//       default:
-//         return message.reply("❌ No results found.");
-//     }
-
-//     track.requester = {
-//       id: message.author.id,
-//       tag: message.author.tag,
-//       avatar: message.author.displayAvatarURL()
-//     };
-
-//     let queue = client.queues.get(message.guild.id);
-
-//     if (!queue) {
-//       const player = await client.shoukaku.joinVoiceChannel({
-//         guildId: message.guild.id,
-//         channelId: voice.id,
-//         shardId: message.guild.shardId
-//       });
-
-//       queue = new MusicQueue(player, message.guild.id, client);
-//       client.queues.set(message.guild.id, queue);
-
-      
-//       // ✅ PLAYER EVENTS — SINGLE SOURCE
-//       player.on("end", (data) => {
-//         console.log("TRACK END REASON:", data.reason);
-//         queue.handleTrackEnd(data.reason);
-//       });
-
-//       player.on("exception", () => {
-//         queue.playing = false;
-//         queue.play();
-//       });
-
-//       player.on("stuck", () => {
-//         queue.playing = false;
-//         queue.play();
-//       });
-//     }
-
-    
-//     queue.add(track);
-
-//     if (!queue.playing) {
-//       await queue.play();
-//       return message.reply(`🎵 Now playing: **${track.info.title}**`);
-//     } else {
-//       return message.reply(`➕ Added to queue: **${track.info.title}**`);
-//     }
-//   }
-// };
-
-
-
-
-
-
-
-
+const MusicQueue = require("./structures/MusicQueue");
 
 const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, ComponentType } = require("discord.js");
 
@@ -196,10 +26,9 @@ module.exports = {
     }
 
     let track;
-
-    // --- SELECTION LOGIC ---
+      
     if (!isLink && res.loadType === "search") {
-      const results = res.data.slice(0, 5); // Get top 5 results
+      const results = res.data.slice(0, 5); 
       
       const description = results.map((t, i) => `**${i + 1}.** [${t.info.title}](${t.info.uri}) - \`${formatDuration(t.info.length)}\``).join('\n');
 
@@ -234,11 +63,9 @@ module.exports = {
         return filterMsg.edit({ content: "❌ Selection timed out.", embeds: [], components: [] });
       }
     } else {
-      // If it's a direct link or a playlist, just grab the first/only track
       track = res.loadType === "playlist" ? res.data.tracks[0] : res.data;
     }
 
-    // --- ADDING TO QUEUE (Your existing logic) ---
     track.requester = {
       id: message.author.id,
       tag: message.author.tag,
@@ -273,7 +100,6 @@ module.exports = {
       );
 
       if (queue.playing) {
-        // Only send this if something is already playing
         const addEmbed = new EmbedBuilder()
             .setAuthor({ name: '➕ Added to Queue', iconURL: track.requester.avatar })
             .setDescription(`[${track.info.title}](${track.info.uri})`)
@@ -283,8 +109,6 @@ module.exports = {
             
             return message.channel.send({ embeds: [addEmbed] });
           } else {
-        // If nothing is playing, just start the queue. 
-        // The "Now Playing" embed will come from the MusicQueue.js play() method.
         await queue.play();
       }
       if (!queue.playing) {
